@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/url"
@@ -21,7 +22,8 @@ import (
 type bodyType string
 
 const (
-	Json bodyType = "json"
+	Json     bodyType = "json"
+	FormData bodyType = "form-data"
 )
 
 type Request struct {
@@ -42,6 +44,15 @@ type Request struct {
 type Body struct {
 	Type bodyType    `json:"type"`
 	Data interface{} `json:"data"`
+}
+
+type FormDataBody struct {
+	Type     string `json:"type"`
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+	Filename string `json:"filename"`
+	FilePath string `json:"filePath"`
+	Content  string `json:"content"`
 }
 
 type response struct {
@@ -114,26 +125,85 @@ func (r *Request) Do() {
 		}
 		return
 	}
-	duration := time.Now().Sub(start)
+	duration := time.Since(start)
 	defer response.Body.Close()
 	r.printResponse(response, duration)
+	if r.ExitOnFailure && response.StatusCode >= http.StatusBadRequest {
+		os.Exit(1)
+	}
 }
 
 func (r *Request) parseBody() (io.Reader, error) {
 	var (
-		err error
-		b   []byte
+		err        error
+		b          []byte
+		formData   []FormDataBody
+		fileWriter io.Writer
+		file       *os.File
 	)
 	if r.Body.Data == nil {
 		return nil, nil
 	}
+	b, err = json.Marshal(r.Body.Data)
+	if err != nil {
+		return nil, err
+	}
 	switch r.Body.Type {
 	case "", Json:
-		b, err = json.Marshal(r.Body.Data)
+		return bytes.NewBuffer(b), nil
+	case FormData:
+		formData = make([]FormDataBody, 0)
+		err = json.Unmarshal(b, &formData)
 		if err != nil {
 			return nil, err
 		}
-		return bytes.NewBuffer(b), nil
+		buffer := bytes.NewBuffer(make([]byte, 0))
+		writer := multipart.NewWriter(buffer)
+		for _, data := range formData {
+			switch data.Type {
+			case "kv":
+				writer.WriteField(data.Name, data.Value)
+			case "file":
+				fileWriter, err = writer.CreateFormFile(data.Name, data.Filename)
+				if err != nil {
+					return nil, err
+				}
+				if data.FilePath == "" && data.Content == "" {
+					return nil, fmt.Errorf("invalid form data file, file path or file content required")
+				}
+				if data.FilePath == "" {
+					_, err = fileWriter.Write([]byte(data.Content))
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					file, err = os.Open(data.FilePath)
+					if err != nil {
+						_, err = fileWriter.Write([]byte(data.Content))
+						if err != nil {
+							return nil, err
+						}
+					} else {
+						b, err = io.ReadAll(file)
+						if err != nil {
+							_, err = fileWriter.Write([]byte(data.Content))
+							if err != nil {
+								return nil, err
+							}
+						} else {
+							_, err = fileWriter.Write(b)
+							if err != nil {
+								_, err = fileWriter.Write([]byte(data.Content))
+								if err != nil {
+									return nil, err
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return buffer, nil
 	default:
 		return nil, fmt.Errorf("unsupported body type " + string(r.Body.Type))
 	}

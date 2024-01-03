@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"log"
-	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -15,7 +14,6 @@ var (
 	requestPath string
 	namespace   string
 	name        string
-	client      *http.Client = http.DefaultClient
 )
 
 func Run() {
@@ -27,7 +25,7 @@ func Run() {
 	rootCmd.PersistentFlags().StringVarP(&requestPath, "path", "p", "", "request file or directory")
 	rootCmd.PersistentFlags().StringVar(&namespace, "namespace", "", "request namespace, if it is not empty, only requests in this namespace will do request")
 	rootCmd.PersistentFlags().StringVarP(&name, "name", "n", "", "request name, if it is not empty, only request with this name will do request")
-	rootCmd.MarkFlagRequired("file")
+	rootCmd.MarkFlagRequired("path")
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
@@ -102,7 +100,7 @@ func formatRequests(requests []*internal.Request) map[string]map[string]*interna
 	)
 	for _, r := range requests {
 		if m, ok := ret[r.Namespace]; ok {
-			if r, exist := m[r.Name]; exist {
+			if _, exist := m[r.Name]; exist {
 				log.Fatalf("request %s %s", r.Namespace, r.Name)
 			} else {
 				ret[r.Namespace][r.Name] = r

@@ -1,25 +1,25 @@
 - namespace: a
   name: login
-  method: get
+  method: GET
   url: https://baidu.com
   headers:
-    token: 
-    - d
-    username: 
-    - admin
+    token:
+      - d
+    username:
+      - admin
   queries:
-    pageNo: 
-    - 1
-    pageSize: 
-    - 10
-  body: 
+    pageNo:
+      - 1
+    pageSize:
+      - 10
+  body:
     type: json # json,form-data
     data:
       name: admin
       age: 12
   timeout: 5s # request timeout, default 0 means never timeout
   skip: false # skip this request if it is true
-  exitOnFailure: false # exit if request failed(response code >=400)
+  exitOnFailure: true # exit if request failed(response code >=400)
   insecureSkipVerify: true
   clientCertFile: /cert/cert.pem
   response:
@@ -27,4 +27,40 @@
     showHeader: true # show response header, default false
     showCode: true #  show response code, default true
     showBody: false # show response body, default true
-    showTimeConsumption: true # show request time consumption 
+    showTimeConsumption: true # show request time consumption
+- namespace: a
+  name: uploadFiles
+  method: POST
+  url: https://uploadfiles
+  headers:
+    token:
+      - d
+    username:
+      - admin
+  queries:
+    pageNo:
+      - 1
+    pageSize:
+      - 10
+  body:
+    type: form-data # json,form-data
+    data:
+      - type: kv
+        name: user
+        value: admin
+      - type: file
+        name: file
+        filename: test.txt
+        filePath: /tmp/test.txt # file path in disk, if it is not empty, use it to post, if file not exist, try to get file content from content
+        content: "this is test file"
+  timeout: 5s # request timeout, default 0 means never timeout
+  skip: false # skip this request if it is true
+  exitOnFailure: true # exit if request failed(response code >=400)
+  insecureSkipVerify: true
+  clientCertFile: /cert/cert.pem
+  response:
+    showUrl: true # show request url, default true
+    showHeader: true # show response header, default false
+    showCode: true #  show response code, default true
+    showBody: false # show response body, default true
+    showTimeConsumption: true # show request time consumption
