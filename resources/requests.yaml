@@ -2,26 +2,16 @@
   name: login
   method: GET
   url: https://baidu.com
-  headers:
-    token:
-      - d
-    username:
-      - admin
-  queries:
-    pageNo:
-      - 1
-    pageSize:
-      - 10
   body:
     type: json # json,form-data
     data:
       name: admin
       age: 12
-  timeout: 5s # request timeout, default 0 means never timeout
+  timeout: 15s # request timeout, default 0 means never timeout
   skip: false # skip this request if it is true
   exitOnFailure: true # exit if request failed(response code >=400)
   insecureSkipVerify: true
-  clientCertFile: /cert/cert.pem
+  # clientCertFile: /cert/cert.pem
   response:
     showUrl: true # show request url, default true
     showHeader: true # show response header, default false

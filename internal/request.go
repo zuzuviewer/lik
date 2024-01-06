@@ -82,39 +82,20 @@ func (r *Request) ShouldRequest(ns, name string) bool {
 func (r *Request) Do() {
 	var (
 		err      error
-		body     io.Reader
-		timeout  time.Duration
+		cancel   context.CancelFunc
 		request  *http.Request
 		response *http.Response
 	)
-	body, err = r.parseBody()
+	request, cancel, err = r.packageRequest()
 	if err != nil {
-		log.Printf("request %s %s parse body failed, %v", r.Namespace, r.Name, err)
+		log.Printf("package request %s %s failed, %v", r.Namespace, r.Name, err)
 		if r.ExitOnFailure {
 			os.Exit(1)
 		}
 		return
 	}
-	request, err = http.NewRequest(r.Method, r.Url, body)
-	if err != nil {
-		log.Printf("request %s %s create failed, %v", r.Namespace, r.Name, err)
-		if r.ExitOnFailure {
-			os.Exit(1)
-		}
-		return
-	}
-	timeout, err = r.parseTimeout()
-	if err != nil {
-		log.Printf("request %s %s parse timeout failed, %v", r.Namespace, r.Name, err)
-		if r.ExitOnFailure {
-			os.Exit(1)
-		}
-		return
-	}
-	if timeout > 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	if cancel != nil {
 		defer cancel()
-		request = request.WithContext(ctx)
 	}
 	start := time.Now()
 	response, err = r.client(request).Do(request)
@@ -131,6 +112,39 @@ func (r *Request) Do() {
 	if r.ExitOnFailure && response.StatusCode >= http.StatusBadRequest {
 		os.Exit(1)
 	}
+}
+
+func (r *Request) packageRequest() (*http.Request, context.CancelFunc, error) {
+	var (
+		err     error
+		ctx     context.Context
+		body    io.Reader
+		timeout time.Duration
+		request *http.Request
+		cancel  context.CancelFunc
+	)
+	body, err = r.parseBody()
+	if err != nil {
+		return nil, nil, err
+	}
+	request, err = http.NewRequest(r.Method, r.Url, body)
+	if err != nil {
+		return nil, nil, err
+	}
+	request.Header = r.Headers
+	// request.URL.RawQuery
+	if len(r.Queries) > 0 {
+		request.URL.RawQuery = r.Queries.Encode()
+	}
+	timeout, err = r.parseTimeout()
+	if err != nil {
+		return nil, nil, err
+	}
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+		request = request.WithContext(ctx)
+	}
+	return request, cancel, nil
 }
 
 func (r *Request) parseBody() (io.Reader, error) {
