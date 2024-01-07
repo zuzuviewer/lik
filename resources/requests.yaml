@@ -1,15 +1,15 @@
 - namespace: a
   name: login
   method: GET
-  url: https://baidu.com
+  url: ${URL}
   body:
-    type: json # json,form-data
+    type: json # json,form-data,form(application/x-www-form-urlencoded),raw; if not set, json default.
     data:
       name: admin
       age: 12
-  timeout: 15s # request timeout, default 0 means never timeout
+  timeout: ${shortTimeOut} # request timeout, default 0 means never timeout
   skip: false # skip this request if it is true
-  exitOnFailure: true # exit if request failed(response code >=400)
+  exitOnFailure: false # exit if request failed(response code >=400)
   insecureSkipVerify: true
   # clientCertFile: /cert/cert.pem
   response:
@@ -32,8 +32,9 @@
       - 1
     pageSize:
       - 10
+  timeout: ${longTimeOut}
   body:
-    type: form-data # json,form-data
+    type: form-data
     data:
       - type: kv
         name: user
@@ -43,14 +44,25 @@
         filename: test.txt
         filePath: /tmp/test.txt # file path in disk, if it is not empty, use it to post, if file not exist, try to get file content from content
         content: "this is test file"
-  timeout: 5s # request timeout, default 0 means never timeout
-  skip: false # skip this request if it is true
-  exitOnFailure: true # exit if request failed(response code >=400)
-  insecureSkipVerify: true
-  clientCertFile: /cert/cert.pem
-  response:
-    showUrl: true # show request url, default true
-    showHeader: true # show response header, default false
-    showCode: true #  show response code, default true
-    showBody: false # show response body, default true
-    showTimeConsumption: true # show request time consumption
+- namespace: a
+  name: create
+  method: POST
+  url: https://create
+  body:
+    type: form
+    data: # must map with form body type, and the value must be string type
+      name: test
+      pwd: df
+      age: "5"
+- namespace: a
+  name: raw
+  method: POST
+  headers:
+    Content-Type: application/json
+  url: https://raw
+  body:
+    type: raw # you should set mime header
+    data: # any type(string,map,array)
+      name: test
+      pwd: df
+      age: "5"

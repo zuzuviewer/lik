@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 
@@ -32,6 +33,7 @@ func Run() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	likConfig := readLikConfig()
 	requests := parseRequestPath()
 	if len(requests) == 0 {
 		return nil
@@ -45,7 +47,7 @@ func run(cmd *cobra.Command, args []string) error {
 			if !request.ShouldRequest(namespace, name) {
 				continue
 			}
-			request.Do()
+			request.Do(likConfig)
 		}
 	}
 	return nil
@@ -109,6 +111,30 @@ func formatRequests(requests []*internal.Request) map[string]map[string]*interna
 			ret[r.Namespace] = make(map[string]*internal.Request, 0)
 			ret[r.Namespace][r.Name] = r
 		}
+	}
+	return ret
+}
+
+func readLikConfig() *internal.LikConfig {
+	ret := &internal.LikConfig{}
+	configFile, err := os.Open("./config/lik.yaml")
+	isYaml := true
+	if err != nil {
+		configFile, err = os.Open("./config/lik.json")
+		if err != nil {
+			return ret
+		} else {
+			isYaml = false
+		}
+	}
+	b, err := io.ReadAll(configFile)
+	if err != nil {
+		return ret
+	}
+	if isYaml {
+		yaml.Unmarshal(b, ret)
+	} else {
+		json.Unmarshal(b, ret)
 	}
 	return ret
 }

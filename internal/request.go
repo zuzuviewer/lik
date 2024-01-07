@@ -24,6 +24,8 @@ type bodyType string
 const (
 	Json     bodyType = "json"
 	FormData bodyType = "form-data"
+	Form     bodyType = "form"
+	Raw      bodyType = "raw"
 )
 
 type Request struct {
@@ -79,14 +81,14 @@ func (r *Request) ShouldRequest(ns, name string) bool {
 	return ns == r.Namespace && name == r.Name
 }
 
-func (r *Request) Do() {
+func (r *Request) Do(LikConfig *LikConfig) {
 	var (
 		err      error
 		cancel   context.CancelFunc
 		request  *http.Request
 		response *http.Response
 	)
-	request, cancel, err = r.packageRequest()
+	request, cancel, err = r.packageRequest(LikConfig)
 	if err != nil {
 		log.Printf("package request %s %s failed, %v", r.Namespace, r.Name, err)
 		if r.ExitOnFailure {
@@ -114,7 +116,7 @@ func (r *Request) Do() {
 	}
 }
 
-func (r *Request) packageRequest() (*http.Request, context.CancelFunc, error) {
+func (r *Request) packageRequest(LikConfig *LikConfig) (*http.Request, context.CancelFunc, error) {
 	var (
 		err     error
 		ctx     context.Context
@@ -127,7 +129,8 @@ func (r *Request) packageRequest() (*http.Request, context.CancelFunc, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	request, err = http.NewRequest(r.Method, r.Url, body)
+	url := LikConfig.replaceMacro(r.Namespace, r.Url)
+	request, err = http.NewRequest(r.Method, url, body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -136,7 +139,7 @@ func (r *Request) packageRequest() (*http.Request, context.CancelFunc, error) {
 	if len(r.Queries) > 0 {
 		request.URL.RawQuery = r.Queries.Encode()
 	}
-	timeout, err = r.parseTimeout()
+	timeout, err = r.parseTimeout(LikConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -164,6 +167,10 @@ func (r *Request) parseBody() (io.Reader, error) {
 	}
 	switch r.Body.Type {
 	case "", Json:
+		if r.Headers == nil {
+			r.Headers = make(http.Header, 1)
+		}
+		r.Headers.Set("Content-Type", "application/json")
 		return bytes.NewBuffer(b), nil
 	case FormData:
 		formData = make([]FormDataBody, 0)
@@ -173,6 +180,10 @@ func (r *Request) parseBody() (io.Reader, error) {
 		}
 		buffer := bytes.NewBuffer(make([]byte, 0))
 		writer := multipart.NewWriter(buffer)
+		if r.Headers == nil {
+			r.Headers = make(http.Header, 1)
+		}
+		r.Headers.Set("Content-Type", writer.FormDataContentType())
 		for _, data := range formData {
 			switch data.Type {
 			case "kv":
@@ -218,6 +229,14 @@ func (r *Request) parseBody() (io.Reader, error) {
 			}
 		}
 		return buffer, nil
+	case Form:
+		if r.Headers == nil {
+			r.Headers = make(http.Header, 1)
+		}
+		r.Headers.Set("Content-Type", "application/x-www-form-urlencoded")
+		return bytes.NewBuffer(b), nil
+	case Raw:
+		return bytes.NewBuffer(b), nil
 	default:
 		return nil, fmt.Errorf("unsupported body type " + string(r.Body.Type))
 	}
@@ -249,8 +268,12 @@ func (r *Request) printResponse(response *http.Response, duration time.Duration)
 	fmt.Fprint(os.Stdout, builder.String())
 }
 
-func (r *Request) parseTimeout() (time.Duration, error) {
-	return time.ParseDuration(r.Timeout)
+func (r *Request) parseTimeout(LikConfig *LikConfig) (time.Duration, error) {
+	if r.Timeout == "" {
+		return 0, nil
+	}
+	timeout := LikConfig.replaceMacro(r.Namespace, r.Timeout)
+	return time.ParseDuration(timeout)
 }
 
 func (r *Request) client(request *http.Request) *http.Client {

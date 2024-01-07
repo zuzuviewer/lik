@@ -1,5 +1,6 @@
 # Lik
-http client written by go
+
+http client written by go. Lik read http requests from file or directory, you can use it to call many requests. 
 
 # Usage
 
