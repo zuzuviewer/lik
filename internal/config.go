@@ -3,12 +3,22 @@ package internal
 import "strings"
 
 type LikConfig struct {
-	Env []EnvConfig `json:"env" yaml:"env"`
+	Env      []EnvConfig    `json:"env" yaml:"env"`
+	Request  RequestConfig  `json:"request" yaml:"request"`
+	Response ResponseConfig `json:"response" yaml:"response"`
 }
 
 type EnvConfig struct {
 	Namespace string            `json:"namespace" yaml:"namespace"`
 	Env       map[string]string `json:"env" yaml:"env"`
+}
+
+type RequestConfig struct {
+	Timeout string `json:"timeout" yaml:"timeout"`
+}
+
+type ResponseConfig struct {
+	response `json:",inline" yaml:",inline"`
 }
 
 type CertConfig struct {

@@ -4,3 +4,11 @@ env:
       URL: https://baidu.com
       shortTimeOut: 3s
       longTimeOut: 10s
+request:
+  timeout: 5s
+respose:
+  showUrl: true # show request url
+  showHeader: true # show response header
+  showCode: true #  show response code
+  showBody: false # show response body
+  showTimeConsumption: true # show request time consumption

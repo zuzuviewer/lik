@@ -13,10 +13,10 @@
   insecureSkipVerify: true
   # clientCertFile: /cert/cert.pem
   response:
-    showUrl: true # show request url, default true
+    showUrl: true # show request url, default false
     showHeader: true # show response header, default false
     showCode: true #  show response code, default true
-    showBody: false # show response body, default true
+    showBody: false # show response body, default false
     showTimeConsumption: true # show request time consumption
 - namespace: a
   name: uploadFiles

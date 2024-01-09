@@ -12,83 +12,26 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type bodyType string
-
-const (
-	Json     bodyType = "json"
-	FormData bodyType = "form-data"
-	Form     bodyType = "form"
-	Raw      bodyType = "raw"
-)
-
-type Request struct {
-	Namespace     string      `json:"namespace" yaml:"namespace"`
-	Name          string      `json:"name" yaml:"name"`
-	Method        string      `json:"method" yaml:"method"`
-	Url           string      `json:"url" yaml:"url"`
-	Headers       http.Header `json:"headers" yaml:"headers"`
-	Queries       url.Values  `json:"queries" yaml:"queries"`
-	Body          Body        `json:"body" yaml:"body"`
-	Timeout       string      `json:"timeout" yaml:"timeout"`
-	Skip          bool        `json:"skip" yaml:"skip"`
-	ExitOnFailure bool        `json:"exitOnFailure" yaml:"exitOnFailure"`
-	Response      response    `json:"response" yaml:"response"`
-	CertConfig    `json:"inline" yaml:"inline"`
+func (r *Request) Do(likConfig *LikConfig) {
+	req := r.Clone()
+	req.prepare(likConfig)
+	req.do()
 }
 
-type Body struct {
-	Type bodyType    `json:"type"`
-	Data interface{} `json:"data"`
-}
-
-type FormDataBody struct {
-	Type     string `json:"type"`
-	Name     string `json:"name"`
-	Value    string `json:"value"`
-	Filename string `json:"filename"`
-	FilePath string `json:"filePath"`
-	Content  string `json:"content"`
-}
-
-type response struct {
-	ShowUrl             bool `json:"showUrl" yaml:"showUrl"`
-	ShowHeader          bool `json:"showHeader" yaml:"showHeader"` // show response header,default false
-	ShowCode            bool `json:"showCode" yaml:"showCode"`     //  show response code, default true
-	ShowBody            bool `json:"showBody" yaml:"showBody"`     // show response body, default true
-	ShowTimeConsumption bool `json:"showTimeConsumption" yaml:"showTimeConsumption"`
-}
-
-func (r *Request) ShouldRequest(ns, name string) bool {
-	if r.Skip {
-		return false
-	}
-	if ns == "" && name == "" {
-		return true
-	}
-	if ns == "" {
-		return name == r.Name
-	}
-	if name == "" {
-		return ns == r.Namespace
-	}
-	return ns == r.Namespace && name == r.Name
-}
-
-func (r *Request) Do(LikConfig *LikConfig) {
+func (r *Request) do() {
 	var (
 		err      error
 		cancel   context.CancelFunc
 		request  *http.Request
 		response *http.Response
 	)
-	request, cancel, err = r.packageRequest(LikConfig)
+	request, cancel, err = r.packageRequest()
 	if err != nil {
 		log.Printf("package request %s %s failed, %v", r.Namespace, r.Name, err)
 		if r.ExitOnFailure {
@@ -116,7 +59,7 @@ func (r *Request) Do(LikConfig *LikConfig) {
 	}
 }
 
-func (r *Request) packageRequest(LikConfig *LikConfig) (*http.Request, context.CancelFunc, error) {
+func (r *Request) packageRequest() (*http.Request, context.CancelFunc, error) {
 	var (
 		err     error
 		ctx     context.Context
@@ -129,8 +72,7 @@ func (r *Request) packageRequest(LikConfig *LikConfig) (*http.Request, context.C
 	if err != nil {
 		return nil, nil, err
 	}
-	url := LikConfig.replaceMacro(r.Namespace, r.Url)
-	request, err = http.NewRequest(r.Method, url, body)
+	request, err = http.NewRequest(r.Method, r.Url, body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -139,7 +81,7 @@ func (r *Request) packageRequest(LikConfig *LikConfig) (*http.Request, context.C
 	if len(r.Queries) > 0 {
 		request.URL.RawQuery = r.Queries.Encode()
 	}
-	timeout, err = r.parseTimeout(LikConfig)
+	timeout, err = r.parseTimeout()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -246,33 +188,33 @@ func (r *Request) printResponse(response *http.Response, duration time.Duration)
 	builder := new(strings.Builder)
 	builder.WriteString("\n")
 	builder.WriteString(r.Namespace + " " + r.Name + "\n")
-	if r.Response.ShowUrl {
+	if r.Response.ShowUrl != nil && *r.Response.ShowUrl {
 		builder.WriteString(r.Url + "\n")
 	}
-	if r.Response.ShowCode {
+	if r.Response.ShowCode == nil || *r.Response.ShowCode {
 		builder.WriteString(strconv.Itoa(response.StatusCode) + "\n")
 	}
-	if r.Response.ShowTimeConsumption {
+	if r.Response.ShowTimeConsumption != nil && *r.Response.ShowTimeConsumption {
 		builder.WriteString(duration.String() + "\n")
 	}
 	// todo more beautiful format
-	if r.Response.ShowHeader {
+	if r.Response.ShowHeader != nil && *r.Response.ShowHeader {
 		header, _ := json.Marshal(response.Header)
 		builder.WriteString(string(header) + "\n")
 	}
 	// todo more beautiful format
-	if r.Response.ShowBody {
+	if r.Response.ShowBody != nil && *r.Response.ShowBody {
 		body, _ := io.ReadAll(response.Body)
 		builder.WriteString(string(body) + "\n")
 	}
 	fmt.Fprint(os.Stdout, builder.String())
 }
 
-func (r *Request) parseTimeout(LikConfig *LikConfig) (time.Duration, error) {
-	if r.Timeout == "" {
+func (r *Request) parseTimeout() (time.Duration, error) {
+	timeout := r.Timeout
+	if timeout == "" {
 		return 0, nil
 	}
-	timeout := LikConfig.replaceMacro(r.Namespace, r.Timeout)
 	return time.ParseDuration(timeout)
 }
 

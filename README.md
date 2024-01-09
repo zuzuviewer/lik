@@ -53,5 +53,5 @@ lik -p resources/requests.yaml
 
 1. Support environment variable in request
 2. Support global config, namespace config
-3. Support more media type(form-data,x-www-form-urlencoded,xml)
+3. Support more media type(form-data,x-www-form-urlencoded)
 
