@@ -18,13 +18,13 @@ import (
 	"time"
 )
 
-func (r *Request) Do(likConfig *LikConfig) {
+func (r *Request) Do(likConfig *LikConfig, out io.Writer) {
 	req := r.Clone()
 	req.prepare(likConfig)
-	req.do()
+	req.do(out)
 }
 
-func (r *Request) do() {
+func (r *Request) do(out io.Writer) {
 	var (
 		err      error
 		cancel   context.CancelFunc
@@ -53,7 +53,7 @@ func (r *Request) do() {
 	}
 	duration := time.Since(start)
 	defer response.Body.Close()
-	r.printResponse(response, duration)
+	r.printResponse(response, duration, out)
 	if r.ExitOnFailure && response.StatusCode >= http.StatusBadRequest {
 		os.Exit(1)
 	}
@@ -184,10 +184,10 @@ func (r *Request) parseBody() (io.Reader, error) {
 	}
 }
 
-func (r *Request) printResponse(response *http.Response, duration time.Duration) {
+func (r *Request) printResponse(response *http.Response, duration time.Duration, out io.Writer) {
 	builder := new(strings.Builder)
-	builder.WriteString("\n")
-	builder.WriteString(r.Namespace + " " + r.Name + "\n")
+	builder.WriteString("---------------")
+	builder.WriteString(r.Namespace + " " + r.Name + "---------------\n")
 	if r.Response.ShowUrl != nil && *r.Response.ShowUrl {
 		builder.WriteString(r.Url + "\n")
 	}
@@ -207,7 +207,7 @@ func (r *Request) printResponse(response *http.Response, duration time.Duration)
 		body, _ := io.ReadAll(response.Body)
 		builder.WriteString(string(body) + "\n")
 	}
-	fmt.Fprint(os.Stdout, builder.String())
+	fmt.Fprint(out, builder.String())
 }
 
 func (r *Request) parseTimeout() (time.Duration, error) {

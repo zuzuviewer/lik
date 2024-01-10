@@ -32,11 +32,11 @@ Lik read requests from json or yaml file, create request file first, e.x:
   insecureSkipVerify: true
   clientCertFile: /cert/cert.pem # pem formatted client cert file
   response:
-    showUrl: true # show request url, default true
+    showUrl: true # show request url, default false
     showHeader: true # show response header, default false
     showCode: true #  show response code, default true
-    showBody: false # show response body, default true
-    showTimeConsumption: true # show request time consumption 
+    showBody: false # show response body, default false
+    showTimeConsumption: true # show request time consumption, default false
 ```
 
 ```shell
@@ -51,7 +51,7 @@ lik -p resources/requests.yaml
 
 # Todo
 
-1. Support environment variable in request
-2. Support global config, namespace config
-3. Support more media type(form-data,x-www-form-urlencoded)
+1. Support namespace config.
+2. Support global results.
+3. Support redirect writer destination.
 

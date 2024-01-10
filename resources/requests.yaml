@@ -3,7 +3,7 @@
   method: GET
   url: ${URL}
   body:
-    type: json # json,form-data,form(application/x-www-form-urlencoded),raw; if not set, json default.
+    type: json # json,form-data,form(application/x-www-form-urlencoded),raw; 
     data:
       name: admin
       age: 12
@@ -13,10 +13,10 @@
   insecureSkipVerify: true
   # clientCertFile: /cert/cert.pem
   response:
-    showUrl: true # show request url, default false
-    showHeader: true # show response header, default false
-    showCode: true #  show response code, default true
-    showBody: false # show response body, default false
+    showUrl: true # show request url
+    showHeader: true # show response header
+    showCode: true #  show response code
+    showBody: false # show response body
     showTimeConsumption: true # show request time consumption
 - namespace: a
   name: uploadFiles

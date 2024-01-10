@@ -15,6 +15,7 @@ var (
 	requestPath string
 	namespace   string
 	name        string
+	output      string
 )
 
 func Run() {
@@ -26,6 +27,7 @@ func Run() {
 	rootCmd.PersistentFlags().StringVarP(&requestPath, "path", "p", "", "request file or directory")
 	rootCmd.PersistentFlags().StringVar(&namespace, "namespace", "", "request namespace, if it is not empty, only requests in this namespace will do request")
 	rootCmd.PersistentFlags().StringVarP(&name, "name", "n", "", "request name, if it is not empty, only request with this name will do request")
+	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", "", "request result writer destination")
 	rootCmd.MarkFlagRequired("path")
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
@@ -33,6 +35,10 @@ func Run() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	out, err := getOutputWriter()
+	if err != nil {
+		return err
+	}
 	likConfig := readLikConfig()
 	requests := parseRequestPath()
 	if len(requests) == 0 {
@@ -47,7 +53,7 @@ func run(cmd *cobra.Command, args []string) error {
 			if !request.ShouldRequest(namespace, name) {
 				continue
 			}
-			request.Do(likConfig)
+			request.Do(likConfig, out)
 		}
 	}
 	return nil
@@ -137,4 +143,11 @@ func readLikConfig() *internal.LikConfig {
 		json.Unmarshal(b, ret)
 	}
 	return ret
+}
+
+func getOutputWriter() (io.Writer, error) {
+	if output == "" {
+		return os.Stdout, nil
+	}
+	return os.OpenFile(output, os.O_RDWR|os.O_APPEND|os.O_CREATE, os.ModePerm)
 }
