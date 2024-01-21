@@ -3,14 +3,21 @@ package internal
 import "strings"
 
 type LikConfig struct {
-	Env      []EnvConfig    `json:"env" yaml:"env"`
-	Request  RequestConfig  `json:"request" yaml:"request"`
-	Response ResponseConfig `json:"response" yaml:"response"`
+	Env      []EnvConfig       `json:"env" yaml:"env"`
+	Config   []NamespaceConfig `json:"config" yaml:"config"`
+	Request  RequestConfig     `json:"request" yaml:"request"`
+	Response ResponseConfig    `json:"response" yaml:"response"`
 }
 
 type EnvConfig struct {
 	Namespace string            `json:"namespace" yaml:"namespace"`
 	Env       map[string]string `json:"env" yaml:"env"`
+}
+
+type NamespaceConfig struct {
+	Namespace string         `json:"namespace" yaml:"namespace"`
+	Request   RequestConfig  `json:"request" yaml:"request"`
+	Response  ResponseConfig `json:"response" yaml:"response"`
 }
 
 type RequestConfig struct {
@@ -85,4 +92,16 @@ func findMacroValue(macro string, globalEnv, namespaceEnv map[string]string) str
 		}
 	}
 	return "${" + macro + "}"
+}
+
+func (c *LikConfig) getNamespaceConfig(namespace string) (NamespaceConfig, bool) {
+	if len(c.Config) == 0 {
+		return NamespaceConfig{}, false
+	}
+	for i, v := range c.Config {
+		if v.Namespace == namespace {
+			return c.Config[i], true
+		}
+	}
+	return NamespaceConfig{}, false
 }

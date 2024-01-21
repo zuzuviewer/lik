@@ -76,6 +76,28 @@ func (r *Request) Clone() *Request {
 }
 
 func (r *Request) prepare(likConfig *LikConfig) {
+	// use namespace config if not set
+	namespaceConfig, exist := likConfig.getNamespaceConfig(r.Namespace)
+	if exist {
+		if r.Timeout == "" {
+			r.Timeout = namespaceConfig.Request.Timeout
+		}
+		if r.Response.ShowCode == nil {
+			r.Response.ShowCode = namespaceConfig.Response.ShowCode
+		}
+		if r.Response.ShowBody == nil {
+			r.Response.ShowBody = namespaceConfig.Response.ShowBody
+		}
+		if r.Response.ShowHeader == nil {
+			r.Response.ShowHeader = namespaceConfig.Response.ShowHeader
+		}
+		if r.Response.ShowUrl == nil {
+			r.Response.ShowUrl = namespaceConfig.Response.ShowUrl
+		}
+		if r.Response.ShowTimeConsumption == nil {
+			r.Response.ShowTimeConsumption = namespaceConfig.Response.ShowTimeConsumption
+		}
+	}
 	// use global config if not set
 	if r.Timeout == "" {
 		r.Timeout = likConfig.Request.Timeout

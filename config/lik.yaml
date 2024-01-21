@@ -1,9 +1,21 @@
 env:
-  - namespace: "a" # specify which namespace use this env, if it is not set,env scope is global
+  - namespace: "a" # specify which namespace use this env, if it is not set, env scope is global
     env: # valuse must be string type
       URL: https://baidu.com
       shortTimeOut: 3s
       longTimeOut: 10s
+config:
+  # namespace config
+  - namespace: "a"
+    request: 
+      time: 10s
+    respose:
+      showUrl: true # show request url
+      showHeader: true # show response header
+      showCode: true #  show response code
+      showBody: false # show response body
+      showTimeConsumption: true # show request time consumption 
+# global config
 request:
   timeout: 5s
 respose:
