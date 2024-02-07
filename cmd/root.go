@@ -6,8 +6,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/zuzuviewer/lik/internal"
+
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
@@ -28,8 +29,11 @@ func Run() {
 	rootCmd.PersistentFlags().StringVar(&namespace, "namespace", "", "request namespace, if it is not empty, only requests in this namespace will do request")
 	rootCmd.PersistentFlags().StringVarP(&name, "name", "n", "", "request name, if it is not empty, only request with this name will do request")
 	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", "", "request result writer destination")
-	rootCmd.MarkFlagRequired("path")
-	if err := rootCmd.Execute(); err != nil {
+	err := rootCmd.MarkPersistentFlagRequired("path")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err = rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -41,21 +45,8 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	likConfig := readLikConfig()
 	requests := parseRequestPath()
-	if len(requests) == 0 {
-		return nil
-	}
-	requestMap := formatRequests(requests)
-	for ns, m := range requestMap {
-		if namespace != "" && ns != namespace {
-			continue
-		}
-		for _, request := range m {
-			if !request.ShouldRequest(namespace, name) {
-				continue
-			}
-			request.Do(likConfig, out)
-		}
-	}
+	requestManager := internal.NewRequestManager(namespace, name, likConfig, requests, out)
+	err = requestManager.Run()
 	return nil
 }
 
@@ -98,26 +89,6 @@ func readRequestFile(filename string) []*internal.Request {
 		return ret
 	}
 	json.Unmarshal(b, &ret)
-	return ret
-}
-
-// key is namespace, value key is request name, value is request
-func formatRequests(requests []*internal.Request) map[string]map[string]*internal.Request {
-	var (
-		ret = make(map[string]map[string]*internal.Request, 0)
-	)
-	for _, r := range requests {
-		if m, ok := ret[r.Namespace]; ok {
-			if _, exist := m[r.Name]; exist {
-				log.Fatalf("request %s %s", r.Namespace, r.Name)
-			} else {
-				ret[r.Namespace][r.Name] = r
-			}
-		} else {
-			ret[r.Namespace] = make(map[string]*internal.Request, 0)
-			ret[r.Namespace][r.Name] = r
-		}
-	}
 	return ret
 }
 

@@ -52,11 +52,11 @@ func (c *LikConfig) replaceMacro(namespace, data string) string {
 		}
 	}
 	var (
-		stringbuiler = new(strings.Builder)
-		dataLen      = len(data)
-		startIndex   = -1
+		stringBuilder = new(strings.Builder)
+		dataLen       = len(data)
+		startIndex    = -1
 	)
-	stringbuiler.Grow(dataLen)
+	stringBuilder.Grow(dataLen)
 	for i := 0; i < dataLen; {
 		if data[i] == '$' && i+3 < dataLen && data[i+1] == '{' {
 			i += 2
@@ -65,17 +65,17 @@ func (c *LikConfig) replaceMacro(namespace, data string) string {
 		}
 		if data[i] == '}' && startIndex != -1 && startIndex+2 < i {
 			macro := data[startIndex:i]
-			stringbuiler.WriteString(findMacroValue(macro, globalEnv, namespaceEnv))
+			stringBuilder.WriteString(findMacroValue(macro, globalEnv, namespaceEnv))
 			startIndex = -1
 			i++
 			continue
 		}
 		if startIndex == -1 {
-			stringbuiler.WriteByte(data[i])
+			stringBuilder.WriteByte(data[i])
 		}
 		i++
 	}
-	return stringbuiler.String()
+	return stringBuilder.String()
 }
 
 func findMacroValue(macro string, globalEnv, namespaceEnv map[string]string) string {

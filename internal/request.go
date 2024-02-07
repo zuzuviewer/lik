@@ -26,10 +26,10 @@ func (r *Request) Do(likConfig *LikConfig, out io.Writer) {
 
 func (r *Request) do(out io.Writer) {
 	var (
-		err      error
-		cancel   context.CancelFunc
-		request  *http.Request
-		response *http.Response
+		err     error
+		cancel  context.CancelFunc
+		request *http.Request
+		resp    *http.Response
 	)
 	request, cancel, err = r.packageRequest()
 	if err != nil {
@@ -43,7 +43,7 @@ func (r *Request) do(out io.Writer) {
 		defer cancel()
 	}
 	start := time.Now()
-	response, err = r.client(request).Do(request)
+	resp, err = r.client(request).Do(request)
 	if err != nil {
 		log.Printf("request %s %s failed, %v", r.Namespace, r.Name, err)
 		if r.ExitOnFailure {
@@ -52,9 +52,9 @@ func (r *Request) do(out io.Writer) {
 		return
 	}
 	duration := time.Since(start)
-	defer response.Body.Close()
-	r.printResponse(response, duration, out)
-	if r.ExitOnFailure && response.StatusCode >= http.StatusBadRequest {
+	defer resp.Body.Close()
+	r.printResponse(resp, duration, out)
+	if r.ExitOnFailure && resp.StatusCode >= http.StatusBadRequest {
 		os.Exit(1)
 	}
 }
