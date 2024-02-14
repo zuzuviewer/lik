@@ -7,7 +7,7 @@ http client written by go. Lik read http requests from file or directory, you ca
 Lik read requests from json or yaml file, create request file first, e.x:
 
 ```yaml
-- namespace: a # 
+- namespace: a 
   name: login
   method: get
   url: https://baidu.com
@@ -48,10 +48,3 @@ lik -p resources
 # read requests from file
 lik -p resources/requests.yaml
 ```
-
-# Todo
-
-1. Support namespace config.
-2. Support global results.
-3. Support redirect writer destination.
-

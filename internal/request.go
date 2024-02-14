@@ -18,13 +18,21 @@ import (
 	"time"
 )
 
-func (r *Request) Do(likConfig *LikConfig, out io.Writer) {
+func (r *Request) Do(likConfig *LikConfig, out io.Writer) error {
 	req := r.Clone()
 	req.prepare(likConfig)
-	req.do(out)
+	if r.Repeat <= 1 {
+		return req.do(out)
+	}
+	for i := 0; i < r.Repeat; i++ {
+		if err := req.do(out); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (r *Request) do(out io.Writer) {
+func (r *Request) do(out io.Writer) error {
 	var (
 		err     error
 		cancel  context.CancelFunc
@@ -34,29 +42,24 @@ func (r *Request) do(out io.Writer) {
 	request, cancel, err = r.packageRequest()
 	if err != nil {
 		log.Printf("package request %s %s failed, %v", r.Namespace, r.Name, err)
-		if r.ExitOnFailure {
-			os.Exit(1)
-		}
-		return
+		return err
 	}
 	if cancel != nil {
 		defer cancel()
 	}
 	start := time.Now()
-	resp, err = r.client(request).Do(request)
+	resp, err = r.getClient(request).Do(request)
 	if err != nil {
 		log.Printf("request %s %s failed, %v", r.Namespace, r.Name, err)
-		if r.ExitOnFailure {
-			os.Exit(1)
-		}
-		return
+		return err
 	}
 	duration := time.Since(start)
 	defer resp.Body.Close()
 	r.printResponse(resp, duration, out)
 	if r.ExitOnFailure && resp.StatusCode >= http.StatusBadRequest {
-		os.Exit(1)
+		return fmt.Errorf("request %s %s failed, code %d", r.Namespace, r.Name, resp.StatusCode)
 	}
+	return nil
 }
 
 func (r *Request) packageRequest() (*http.Request, context.CancelFunc, error) {
@@ -218,7 +221,10 @@ func (r *Request) parseTimeout() (time.Duration, error) {
 	return time.ParseDuration(timeout)
 }
 
-func (r *Request) client(request *http.Request) *http.Client {
+func (r *Request) getClient(request *http.Request) *http.Client {
+	if r.client != nil {
+		return r.client
+	}
 	tr := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -244,9 +250,10 @@ func (r *Request) client(request *http.Request) *http.Client {
 			MinVersion:         tls.VersionTLS12,
 		}
 	}
-	return &http.Client{
+	r.client = &http.Client{
 		Transport: tr,
 	}
+	return r.client
 }
 
 // readClientCert read pem client certificate file

@@ -47,7 +47,7 @@ func run(cmd *cobra.Command, args []string) error {
 	requests := parseRequestPath()
 	requestManager := internal.NewRequestManager(namespace, name, likConfig, requests, out)
 	err = requestManager.Run()
-	return nil
+	return err
 }
 
 func parseRequestPath() []*internal.Request {

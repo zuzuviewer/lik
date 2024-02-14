@@ -38,7 +38,11 @@ func (r *RequestManager) Run() error {
 			if !request.ShouldRequest(r.namespace, r.requestName) {
 				continue
 			}
-			request.Do(r.config, r.output)
+			if err := request.Do(r.config, r.output); err != nil {
+				if request.ExitOnFailure {
+					return err
+				}
+			}
 		}
 	}
 	return nil

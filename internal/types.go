@@ -19,6 +19,7 @@ type Request struct {
 	Name          string      `json:"name" yaml:"name"`
 	Method        string      `json:"method" yaml:"method"`
 	Url           string      `json:"url" yaml:"url"`
+	Repeat        int         `json:"repeat" yaml:"repeat"`
 	Headers       http.Header `json:"headers" yaml:"headers"`
 	Queries       url.Values  `json:"queries" yaml:"queries"`
 	Body          Body        `json:"body" yaml:"body"`
@@ -27,6 +28,7 @@ type Request struct {
 	ExitOnFailure bool        `json:"exitOnFailure" yaml:"exitOnFailure"`
 	Response      response    `json:"response" yaml:"response"`
 	CertConfig    `json:"inline" yaml:"inline"`
+	client        *http.Client // cache request client for repeat
 }
 
 type Body struct {
