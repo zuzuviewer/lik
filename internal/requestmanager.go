@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"io"
 	"log"
 )
@@ -30,6 +31,10 @@ func (r *RequestManager) Run() error {
 		return nil
 	}
 	requestMap := formatRequests(r.requests)
+	counter := Counter{}
+	defer func() {
+		fmt.Fprintf(r.output, "request %s\n", counter.String())
+	}()
 	for ns, m := range requestMap {
 		if r.namespace != "" && ns != r.namespace {
 			continue
@@ -38,10 +43,14 @@ func (r *RequestManager) Run() error {
 			if !request.ShouldRequest(r.namespace, r.requestName) {
 				continue
 			}
+			counter.TotalCount++
 			if err := request.Do(r.config, r.output); err != nil {
+				counter.FailedCount++
 				if request.ExitOnFailure {
 					return err
 				}
+			} else {
+				counter.SucceedCount++
 			}
 		}
 	}
