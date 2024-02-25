@@ -56,7 +56,7 @@ func (r *Request) do(out io.Writer) error {
 	duration := time.Since(start)
 	defer resp.Body.Close()
 	r.printResponse(resp, duration, out)
-	if r.ExitOnFailure && resp.StatusCode >= http.StatusBadRequest {
+	if resp.StatusCode >= http.StatusBadRequest {
 		return fmt.Errorf("request %s %s failed, code %d", r.Namespace, r.Name, resp.StatusCode)
 	}
 	return nil
@@ -200,17 +200,38 @@ func (r *Request) printResponse(response *http.Response, duration time.Duration,
 	if r.Response.ShowTimeConsumption != nil && *r.Response.ShowTimeConsumption {
 		builder.WriteString(duration.String() + "\n")
 	}
-	// todo more beautiful format
+
 	if r.Response.ShowHeader != nil && *r.Response.ShowHeader {
-		header, _ := json.Marshal(response.Header)
-		builder.WriteString(string(header) + "\n")
+		builder.WriteString("Headers:\n")
+		for k, v := range response.Header {
+			builder.WriteString("  ")
+			builder.WriteString(k)
+			builder.WriteString(": ")
+			builder.WriteString(fmt.Sprintf("%v", v))
+			builder.WriteString("\n")
+		}
 	}
+
 	// todo more beautiful format
 	if r.Response.ShowBody != nil && *r.Response.ShowBody {
-		body, _ := io.ReadAll(response.Body)
-		builder.WriteString(string(body) + "\n")
+		builder.WriteString(formatBody(response.Header, response.Body) + "\n")
 	}
 	fmt.Fprint(out, builder.String())
+}
+
+func formatBody(headers http.Header, body io.Reader) string {
+	b, _ := io.ReadAll(body)
+	contentType := headers.Get("Content-Type")
+	if contentType == "application/json" {
+		dst := bytes.NewBuffer(make([]byte, 0))
+		err := json.Indent(dst, b, "", "    ")
+		if err != nil {
+			return string(b)
+		} else {
+			return dst.String()
+		}
+	}
+	return string(b)
 }
 
 func (r *Request) parseTimeout() (time.Duration, error) {
