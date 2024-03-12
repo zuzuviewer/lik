@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"html"
 	"io"
 	"log"
 	"mime/multipart"
@@ -80,6 +81,9 @@ func (r *Request) packageRequest() (*http.Request, context.CancelFunc, error) {
 		return nil, nil, err
 	}
 	request.Header = r.Headers
+	if r.Username != "" && r.Password != "" {
+		request.SetBasicAuth(r.Username, r.Password)
+	}
 	// request.URL.RawQuery
 	if len(r.Queries) > 0 {
 		request.URL.RawQuery = r.Queries.Encode()
@@ -212,7 +216,6 @@ func (r *Request) printResponse(response *http.Response, duration time.Duration,
 		}
 	}
 
-	// todo more beautiful format
 	if r.Response.ShowBody != nil && *r.Response.ShowBody {
 		builder.WriteString(formatBody(response.Header, response.Body) + "\n")
 	}
@@ -230,6 +233,9 @@ func formatBody(headers http.Header, body io.Reader) string {
 		} else {
 			return dst.String()
 		}
+	}
+	if contentType == "text/html" {
+		return html.UnescapeString(string(b))
 	}
 	return string(b)
 }

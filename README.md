@@ -27,6 +27,9 @@ Lik read requests from json or yaml file, create request file first, e.x:
       name: admin
       age: 12
   timeout: 5s # request timeout, default 0 means never timeout
+  repeat: 1
+  username: admin # basic header username
+  password: 123456 # basic header password
   skip: false # skip this request if it is true
   exitOnFailure: false # exit if request failed(response code >=400)
   insecureSkipVerify: true

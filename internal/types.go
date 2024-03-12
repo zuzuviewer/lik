@@ -15,10 +15,14 @@ const (
 )
 
 type Request struct {
-	Namespace     string      `json:"namespace" yaml:"namespace"`
-	Name          string      `json:"name" yaml:"name"`
-	Method        string      `json:"method" yaml:"method"`
-	Url           string      `json:"url" yaml:"url"`
+	Namespace string `json:"namespace" yaml:"namespace"`
+	Name      string `json:"name" yaml:"name"`
+	Method    string `json:"method" yaml:"method"`
+	Url       string `json:"url" yaml:"url"`
+	// Username basic header username
+	Username string `json:"username" yaml:"username"`
+	// Password basic header password
+	Password      string      `json:"password" yaml:"password"`
 	Repeat        int         `json:"repeat" yaml:"repeat"`
 	Headers       http.Header `json:"headers" yaml:"headers"`
 	Queries       url.Values  `json:"queries" yaml:"queries"`
