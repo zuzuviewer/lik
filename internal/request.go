@@ -110,18 +110,23 @@ func (r *Request) parseBody() (io.Reader, error) {
 	if r.Body.Data == nil {
 		return nil, nil
 	}
-	b, err = json.Marshal(r.Body.Data)
-	if err != nil {
-		return nil, err
-	}
+
 	switch r.Body.Type {
 	case "", Json:
+		b, err = json.Marshal(r.Body.Data)
+		if err != nil {
+			return nil, err
+		}
 		if r.Headers == nil {
 			r.Headers = make(http.Header, 1)
 		}
 		r.Headers.Set("Content-Type", "application/json")
 		return bytes.NewBuffer(b), nil
 	case FormData:
+		b, err = json.Marshal(r.Body.Data)
+		if err != nil {
+			return nil, err
+		}
 		formData = make([]FormDataBody, 0)
 		err = json.Unmarshal(b, &formData)
 		if err != nil {
@@ -179,13 +184,26 @@ func (r *Request) parseBody() (io.Reader, error) {
 		}
 		return buffer, nil
 	case Form:
+		b, err = json.Marshal(r.Body.Data)
+		if err != nil {
+			return nil, err
+		}
 		if r.Headers == nil {
 			r.Headers = make(http.Header, 1)
 		}
 		r.Headers.Set("Content-Type", "application/x-www-form-urlencoded")
 		return bytes.NewBuffer(b), nil
 	case Raw:
-		return bytes.NewBuffer(b), nil
+		switch v := r.Body.Data.(type) {
+		case string:
+			return strings.NewReader(v), nil
+		default:
+			b, err = json.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+			return bytes.NewBuffer(b), nil
+		}
 	default:
 		return nil, fmt.Errorf("unsupported body type " + string(r.Body.Type))
 	}
